@@ -44,7 +44,7 @@ class Admin {
             'pti-post-editor-script',
             PTI_PLUGIN_URL . 'inc/Assets/dist/js/post-editor.js',
             $script_asset['dependencies'],
-            $script_asset['version']
+            filemtime( PTI_PLUGIN_DIR . 'inc/Assets/dist/js/post-editor.js' )
         );
 
         wp_enqueue_media();
