@@ -4,7 +4,7 @@
  * Provides image cropping, aspect ratio selection, and reordering for Instagram carousel posts.
  * Supports immediate posting and scheduling with atomic protection against double-clicks.
  */
-import { useState, useCallback, useEffect } from '@wordpress/element';
+import { useState, useCallback, useEffect, useRef } from '@wordpress/element';
 import { Modal, Button, SelectControl, Spinner, DateTimePicker } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import Cropper from 'react-easy-crop';
