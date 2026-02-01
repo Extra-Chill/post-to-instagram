@@ -113,7 +113,10 @@ export default function useInstagramAuth(i18n, auth_redirect_status) {
       const response = await wp.apiFetch({
         path: '/pti/v1/disconnect',
         method: 'POST',
-        data: { _wpnonce: nonce_disconnect },
+        data: {},
+        headers: {
+          'X-WP-Nonce': window.pti_data.rest_nonce
+        },
       });
       setDisconnecting(false);
       if (response && response.success) {

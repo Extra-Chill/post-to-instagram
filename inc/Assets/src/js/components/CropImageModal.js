@@ -224,7 +224,6 @@ const CropImageModal = ({ images, setImages, caption, postId, onClose, onPostCom
                 aspectRatio,
                 imageCropData,
                 rotation,
-                nonce: pti_data.nonce_post_media,
             });
             onPostComplete();
         } catch (error) {
@@ -245,7 +244,6 @@ const CropImageModal = ({ images, setImages, caption, postId, onClose, onPostCom
                 caption,
                 scheduleDateTime,
                 rotation,
-                nonce: pti_data.nonce_schedule_media,
             });
             onPostComplete();
         } catch (error) {

@@ -5,15 +5,15 @@
 set -e
 
 PLUGIN_SLUG="post-to-instagram"
-DIST_DIR="dist"
+BUILD_DIR="build"
 ROOT_DIR="$(pwd)"
 
 echo "🚀 Building $PLUGIN_SLUG for production..."
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
-rm -rf "$DIST_DIR"
-mkdir -p "$DIST_DIR"
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
 
 # Install production dependencies (if composer.json exists)
 if [ -f "composer.json" ]; then
@@ -26,13 +26,18 @@ if [ -f "package.json" ]; then
     echo "🔨 Building Gutenberg editor assets..."
     npm install > /dev/null
     npx wp-scripts build inc/Assets/src/js/post-editor.js --output-path=inc/Assets/dist/js/
+    
+    # Copy CSS files to dist
+    echo "📄 Copying CSS assets..."
+    mkdir -p inc/Assets/dist/css
+    cp inc/Assets/src/css/*.css inc/Assets/dist/css/ 2>/dev/null || echo "No CSS files to copy"
 fi
 
 # Copy files with exclusions from .buildignore
 echo "📁 Copying production files..."
 if [ -f ".buildignore" ]; then
     # Use rsync with exclude-from for .buildignore patterns
-    rsync -av --exclude-from=.buildignore ./ "$DIST_DIR/$PLUGIN_SLUG/"
+    rsync -av --exclude-from=.buildignore ./ "$BUILD_DIR/$PLUGIN_SLUG/"
 else
     # Fallback exclusions if .buildignore doesn't exist
     rsync -av --exclude='node_modules' \
@@ -48,26 +53,28 @@ else
               --exclude='package-lock.json' \
               --exclude='composer.lock' \
               --exclude='build*.sh' \
-              --exclude='dist' \
+              --exclude='build' \
               --exclude='*.zip' \
               --exclude='CLAUDE.md' \
+              --exclude='AGENTS.md' \
               --exclude='README.md' \
-              ./ "$DIST_DIR/$PLUGIN_SLUG/"
+              ./ "$BUILD_DIR/$PLUGIN_SLUG/"
 fi
 
 # Build validation - ensure essential plugin files exist
 echo "✅ Validating build..."
 ESSENTIAL_FILES=(
-    "$DIST_DIR/$PLUGIN_SLUG/post-to-instagram.php"
-    "$DIST_DIR/$PLUGIN_SLUG/inc/Core/Admin.php"
-    "$DIST_DIR/$PLUGIN_SLUG/inc/Core/Auth.php"
-    "$DIST_DIR/$PLUGIN_SLUG/inc/Core/RestApi.php"
-    "$DIST_DIR/$PLUGIN_SLUG/inc/Core/Actions/Post.php"
-    "$DIST_DIR/$PLUGIN_SLUG/inc/Core/Actions/Schedule.php"
-    "$DIST_DIR/$PLUGIN_SLUG/inc/Core/Actions/Cleanup.php"
-    "$DIST_DIR/$PLUGIN_SLUG/auth/oauth-handler.html"
-    "$DIST_DIR/$PLUGIN_SLUG/inc/Assets/dist/js/post-editor.js"
-    "$DIST_DIR/$PLUGIN_SLUG/inc/Assets/dist/js/post-editor.asset.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/post-to-instagram.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Core/Admin.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Core/Auth.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Core/RestApi.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Core/Actions/Post.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Core/Actions/Schedule.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Core/Actions/Cleanup.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/auth/oauth-handler.html"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Assets/dist/js/post-editor.js"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Assets/dist/js/post-editor.asset.php"
+    "$BUILD_DIR/$PLUGIN_SLUG/inc/Assets/dist/css/admin-styles.css"
 )
 
 for file in "${ESSENTIAL_FILES[@]}"; do
@@ -77,9 +84,9 @@ for file in "${ESSENTIAL_FILES[@]}"; do
     fi
 done
 
-# Create ZIP in /dist
+# Create ZIP in /build
 echo "📦 Creating production ZIP..."
-cd "$DIST_DIR"
+cd "$BUILD_DIR"
 zip -r "${PLUGIN_SLUG}.zip" "$PLUGIN_SLUG/" > /dev/null
 cd "$ROOT_DIR"
 
@@ -89,5 +96,5 @@ if [ -f "composer.json" ]; then
     composer install --no-interaction > /dev/null
 fi
 
-echo "✅ Production build complete: $DIST_DIR/${PLUGIN_SLUG}.zip"
-echo "📊 Build size: $(du -h "$DIST_DIR/${PLUGIN_SLUG}.zip" | cut -f1)"
+echo "✅ Production build complete: $BUILD_DIR/${PLUGIN_SLUG}.zip"
+echo "📊 Build size: $(du -h "$BUILD_DIR/${PLUGIN_SLUG}.zip" | cut -f1)"

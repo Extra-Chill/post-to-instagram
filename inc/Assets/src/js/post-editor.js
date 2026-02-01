@@ -1,6 +1,7 @@
 import { __ } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
 import { registerPlugin } from '@wordpress/plugins';
-import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/editor';
+import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/edit-post';
 import { PanelBody, Button } from '@wordpress/components';
 import { Fragment, useState } from '@wordpress/element';
 import AuthPanel from './components/AuthPanel';
@@ -12,6 +13,14 @@ import SidebarPanelContent from './components/SidebarPanelContent';
 import useInstagramAuth from './hooks/useInstagramAuth';
 
 const PTI_ICON = 'instagram'; // Placeholder, can be replaced with a custom SVG icon component
+
+try {
+    if (typeof window !== 'undefined' && window.pti_data?.rest_nonce) {
+        apiFetch.use(apiFetch.createNonceMiddleware(window.pti_data.rest_nonce));
+    }
+} catch (e) {
+    // Non-fatal; individual requests will still work if cookie auth is available
+}
 
 const PostToInstagramPluginSidebar = () => {
     // Destructure pti_data passed from PHP

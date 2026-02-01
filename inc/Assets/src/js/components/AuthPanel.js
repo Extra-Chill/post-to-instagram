@@ -48,6 +48,9 @@ const AuthPanel = ({
                 app_id: appId,
                 app_secret: appSecret,
             },
+            headers: {
+                'X-WP-Nonce': window.pti_data.rest_nonce
+            },
         })
             .then((response) => {
                 setSaving(false);

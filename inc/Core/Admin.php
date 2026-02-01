@@ -72,6 +72,8 @@ class Admin {
                 'content_image_ids' => $image_ids,
                 'shared_image_ids' => $shared_image_ids,
                 'auth_redirect_status' => self::get_auth_redirect_status(),
+                // Explicit REST nonce for authenticated REST requests (important in Multisite)
+                'rest_nonce' => wp_create_nonce( 'wp_rest' ),
             ],
             self::generate_nonces(),
             $auth_status,
@@ -161,8 +163,6 @@ class Admin {
             'nonce_save_app_creds' => wp_create_nonce( 'pti_save_app_creds_nonce' ),
             'nonce_auth_check' => wp_create_nonce( 'pti_auth_check_nonce' ),
             'nonce_disconnect' => wp_create_nonce( 'pti_disconnect_nonce' ),
-            'nonce_post_media' => wp_create_nonce( 'pti_post_media_nonce' ),
-            'nonce_schedule_media' => wp_create_nonce( 'pti_schedule_media_nonce' ),
         ];
     }
 

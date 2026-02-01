@@ -9,10 +9,26 @@ import { __ } from '@wordpress/i18n';
 import { getCroppedImg } from '../utils/cropImage';
 import { calculateCenterCrop } from '../utils/cropUtils';
 
+const interpretApiError = (error, context = 'request') => {
+    if (error && typeof error === 'object') {
+        if (error.code === 'rest_cookie_invalid_nonce') {
+            // Provide actionable guidance when WordPress rejects the REST nonce/cookie pair.
+            console.warn('[Post to Instagram] REST nonce rejected. This usually means the admin session or cached script is stale. Context:', context, error);
+            return new Error(__('Your WordPress login session or REST security nonce is no longer valid. Refresh the editor (or log out and back in), then try again. If the issue persists, ensure admin pages are excluded from caching/CDN.', 'post-to-instagram'));
+        }
+        if (error.message) {
+            return error instanceof Error ? error : new Error(error.message);
+        }
+    }
+    if (typeof error === 'string') {
+        return new Error(error);
+    }
+    return new Error(__('Unexpected error communicating with WordPress. Check the browser console for details.', 'post-to-instagram'));
+};
+
 function useInstagramPostActions() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [processingMessage, setProcessingMessage] = useState('');
-
     /**
      * Post images to Instagram immediately.
      *
@@ -36,14 +52,15 @@ function useInstagramPostActions() {
                 try {
                     statusResp = await wp.apiFetch({
                         path: `/pti/v1/post-status?processing_key=${encodeURIComponent(processingKeyRef.current)}`,
-                        method: 'GET'
+                        method: 'GET',
                     });
                 } catch (err) {
+                    const interpretedError = interpretApiError(err, 'poll-processing');
                     // Network or fetch error: stop polling and surface notice
                     clearPolling();
                     setIsProcessing(false);
                     if (window.wp?.data?.dispatch) {
-                        window.wp.data.dispatch('core/notices').createNotice('error', err.message || __('Error polling Instagram status.', 'post-to-instagram'), { isDismissible: true });
+                        window.wp.data.dispatch('core/notices').createNotice('error', interpretedError.message || __('Error polling Instagram status.', 'post-to-instagram'), { isDismissible: true });
                     }
                     break;
                 }
@@ -89,7 +106,7 @@ function useInstagramPostActions() {
         }
     }, [setProcessingMessage]);
 
-    const postToInstagram = useCallback(async ({ postId, images, caption, aspectRatio, imageCropData, rotation, nonce }) => {
+    const postToInstagram = useCallback(async ({ postId, images, caption, aspectRatio, imageCropData, rotation }) => {
         setIsProcessing(true);
         try {
             const tempUrls = [];
@@ -105,12 +122,11 @@ function useInstagramPostActions() {
                 const formData = new FormData();
                 const fileName = 'cropped-' + (img.url.split('/').pop() || 'image.jpg');
                 formData.append('cropped_image', croppedBlob, fileName);
-                formData.append('_wpnonce', nonce);
                 const response = await wp.apiFetch({
                     path: '/pti/v1/upload-cropped-image',
                     method: 'POST',
                     body: formData,
-                });
+                }).catch(error => { throw interpretApiError(error, 'upload-cropped-image'); });
                 if (!response.success || !response.url) {
                     throw new Error(response.message || `Failed to upload image ${i + 1}.`);
                 }
@@ -126,9 +142,8 @@ function useInstagramPostActions() {
                     image_urls: tempUrls,
                     image_ids: imageIds,
                     caption: caption,
-                    _wpnonce: nonce,
                 },
-            });
+            }).catch(error => { throw interpretApiError(error, 'post-now'); });
             // If backend indicates async processing, start polling
             if (postResponse.status === 'processing' || postResponse.processing_key) {
                 const processingKey = postResponse.processing_key;
@@ -159,12 +174,13 @@ function useInstagramPostActions() {
             }
             return postResponse;
         } catch (error) {
+            const interpretedError = interpretApiError(error, 'post-now-catch');
             clearPolling();
             setIsProcessing(false);
             if (window.wp && window.wp.data && window.wp.data.dispatch) {
-                window.wp.data.dispatch('core/notices').createNotice('error', error.message || __('Error posting to Instagram.', 'post-to-instagram'), { isDismissible: true });
+                window.wp.data.dispatch('core/notices').createNotice('error', interpretedError.message || __('Error posting to Instagram.', 'post-to-instagram'), { isDismissible: true });
             }
-            throw error;
+            throw interpretedError;
         }
     }, []);
 
@@ -173,7 +189,7 @@ function useInstagramPostActions() {
      *
      * Stores crop data for server-side processing via WP-Cron.
      */
-    const scheduleInstagramPost = useCallback(async ({ postId, images, imageCropData, aspectRatio, caption, scheduleDateTime, rotation, nonce }) => {
+    const scheduleInstagramPost = useCallback(async ({ postId, images, imageCropData, aspectRatio, caption, scheduleDateTime, rotation }) => {
         setIsProcessing(true);
         try {
             const finalCropData = [];
@@ -204,9 +220,8 @@ function useInstagramPostActions() {
                     crop_data: finalCropData,
                     caption: caption,
                     schedule_time: scheduleDateTime,
-                    _wpnonce: nonce,
                 },
-            });
+            }).catch(error => { throw interpretApiError(error, 'schedule-post'); });
             if (!scheduleResponse.success) {
                 throw new Error(scheduleResponse.message || 'Failed to schedule post.');
             }
@@ -217,11 +232,12 @@ function useInstagramPostActions() {
             }
             return scheduleResponse;
         } catch (error) {
+            const interpretedError = interpretApiError(error, 'schedule-post-catch');
             setIsProcessing(false);
             if (window.wp && window.wp.data && window.wp.data.dispatch) {
-                window.wp.data.dispatch('core/notices').createNotice('error', error.message || __('Error scheduling post.', 'post-to-instagram'), { isDismissible: true });
+                window.wp.data.dispatch('core/notices').createNotice('error', interpretedError.message || __('Error scheduling post.', 'post-to-instagram'), { isDismissible: true });
             }
-            throw error;
+            throw interpretedError;
         }
     }, []);
 

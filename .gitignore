@@ -4,6 +4,12 @@ node_modules/
 # Build output
 /dist/
 
+# Build artifacts
+build/
+
+# Editor settings
+.vscode/
+
 # Cursor AI and documentation
 .cursor/
 

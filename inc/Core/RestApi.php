@@ -83,7 +83,7 @@ class RestApi {
             array(
                 'methods'             => \WP_REST_Server::CREATABLE,
                 'callback'            => [ __CLASS__, 'handle_post_now_proxy' ],
-                'permission_callback' => function() { return current_user_can( 'edit_posts' ); },
+                'permission_callback' => function() { error_log('PTI Debug - Checking permission for post-now'); return current_user_can( 'edit_posts' ); },
                 'args'                => array(
                     'post_id' => array(
                         'required' => true,
@@ -103,10 +103,6 @@ class RestApi {
                         'required' => false,
                         'type' => 'string',
                     ),
-                    '_wpnonce' => array(
-                        'required' => true,
-                        'type' => 'string',
-                    ),
                 ),
             )
         );
@@ -118,13 +114,10 @@ class RestApi {
             array(
                 'methods'             => \WP_REST_Server::CREATABLE,
                 'callback'            => [ __CLASS__, 'handle_upload_cropped_image' ],
-                'permission_callback' => function() { return current_user_can( 'edit_posts' ); },
-                'args'                => array(
-                    '_wpnonce' => array(
-                        'required' => true,
-                        'type' => 'string',
-                    ),
-                ),
+                'permission_callback' => function() { 
+                    error_log('PTI Debug - Checking permission for upload-cropped-image: ' . (current_user_can( 'edit_posts' ) ? 'yes' : 'no'));
+                    return current_user_can( 'edit_posts' ); 
+                },
             )
         );
 
@@ -155,10 +148,6 @@ class RestApi {
                         'type' => 'string',
                     ),
                     'schedule_time' => array(
-                        'required' => true,
-                        'type' => 'string',
-                    ),
-                    '_wpnonce' => array(
                         'required' => true,
                         'type' => 'string',
                     ),
@@ -282,11 +271,6 @@ class RestApi {
         $image_urls = $request->get_param( 'image_urls' );
         $image_ids = $request->get_param( 'image_ids' );
         $caption = $request->get_param( 'caption' );
-        $nonce = $request->get_param( '_wpnonce' );
-
-        if ( ! wp_verify_nonce( $nonce, 'pti_post_media_nonce' ) ) {
-            return new \WP_Error( 'invalid_nonce', __( 'Invalid nonce.', 'post-to-instagram' ), [ 'status' => 403 ] );
-        }
 
         if ( empty( $post_id ) || empty( $image_urls ) || empty( $image_ids ) ) {
             return new \WP_Error(
@@ -368,10 +352,7 @@ class RestApi {
      * @return \WP_REST_Response|\WP_Error Response or error
      */
     public static function handle_upload_cropped_image( $request ) {
-        $nonce = $request->get_param( '_wpnonce' );
-        if ( ! wp_verify_nonce( $nonce, 'pti_post_media_nonce' ) ) { // reuse posting nonce for uploads
-            return new \WP_Error( 'invalid_nonce', __( 'Invalid nonce.', 'post-to-instagram' ), [ 'status' => 403 ] );
-        }
+        error_log('PTI Debug - handle_upload_cropped_image called');
         if ( ! isset( $_FILES['cropped_image'] ) ) {
             return new \WP_Error(
                 'pti_missing_file',
@@ -451,10 +432,6 @@ class RestApi {
     public static function handle_schedule_post( $request ) {
         $post_id = $request->get_param( 'post_id' );
         $params = $request->get_params();
-        $nonce = isset( $params['_wpnonce'] ) ? $params['_wpnonce'] : '';
-        if ( ! wp_verify_nonce( $nonce, 'pti_schedule_media_nonce' ) ) {
-            return new \WP_Error( 'invalid_nonce', __( 'Invalid nonce.', 'post-to-instagram' ), [ 'status' => 403 ] );
-        }
 
         // Validate required parameters
         if ( empty( $post_id ) || empty( $params['image_ids'] ) || empty( $params['schedule_time'] ) ) {

@@ -4,6 +4,7 @@ vendor/
 docs/
 .DS_Store
 .claude/
+.vscode/
 CLAUDE.md
 README.md
 .buildignore
