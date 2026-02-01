@@ -3,7 +3,7 @@
  * Plugin Name:       Post to Instagram
  * Plugin URI:        https://github.com/chubes4/post-to-instagram
  * Description:       Allows WordPress users to easily publish images from their posts directly to a connected Instagram account.
- * Version:           1.0.0
+ * Version:           1.2.0
  * Author:            Chris Huber
  * Author URI:        https://chubes.net
  * License:           GPL v2 or later
@@ -15,7 +15,7 @@
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
-define( 'PTI_VERSION', '1.0.0' );
+define( 'PTI_VERSION', '1.2.0' );
 define( 'PTI_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PTI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'PTI_PLUGIN_FILE', __FILE__ );
@@ -97,6 +97,7 @@ function pti_init_plugin() {
     PostToInstagram\Core\Actions\Post::register();
     PostToInstagram\Core\Actions\Schedule::register();
     PostToInstagram\Core\Actions\Cleanup::register();
+    PostToInstagram\Core\Abilities::register();
 
     if ( is_admin() ) {
         PostToInstagram\Core\Admin::register();
@@ -131,4 +132,3 @@ register_activation_hook(__FILE__, function() {
 register_deactivation_hook(__FILE__, function() {
     flush_rewrite_rules();
 });
-
