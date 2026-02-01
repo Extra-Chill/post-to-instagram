@@ -107,3 +107,40 @@ This is a WordPress plugin for posting images from WordPress posts to Instagram 
 - **Post Metadata**: Uses `_pti_instagram_shared_images` and `_pti_instagram_scheduled_posts` 
 - **Transients**: OAuth state and temporary data with automatic expiration
 - **File System**: Temporary images in `/wp-content/uploads/pti-temp/` with daily cleanup
+
+### WordPress Abilities API Integration
+
+The plugin integrates with the WordPress Abilities API for programmatic Instagram posting, enabling agents and automated systems to post images without using the Gutenberg editor.
+
+**Registered Abilities:**
+
+1. **`post-to-instagram/post-from-media`** - Post images from the media library to Instagram
+   - Input: `attachment_ids` (array), `caption` (string), `aspect_ratio` (1:1|4:5|1.91:1), `post_id` (optional)
+   - Output: `success`, `message`, `media_id`, `permalink`
+   - Uses server-side center cropping for the target aspect ratio
+   - Requires: `upload_files` and `edit_posts` capabilities
+
+2. **`post-to-instagram/list-media`** - List images available for posting
+   - Input: `limit`, `search`, `not_posted` (filter to unposted images)
+   - Output: Array of images with `id`, `title`, `url`, `width`, `height`, `posted` status
+   - Requires: `upload_files` capability
+
+3. **`post-to-instagram/auth-status`** - Check Instagram authentication status
+   - Output: `authenticated`, `username`, `expires_at`
+   - Requires: `edit_posts` capability
+
+**Usage via REST API:**
+```bash
+# Post an image
+POST /wp-json/wp-abilities/v1/post-to-instagram/post-from-media/run
+{"attachment_ids": [123], "caption": "My post", "aspect_ratio": "1:1"}
+
+# List available images
+GET /wp-json/wp-abilities/v1/post-to-instagram/list-media/run?input[limit]=20
+
+# Check auth status
+GET /wp-json/wp-abilities/v1/post-to-instagram/auth-status/run
+```
+
+**MCP Integration:**
+All abilities are exposed via MCP with `mcp.public: true`, making them discoverable by AI assistants using the WordPress Abilities API MCP adapter.

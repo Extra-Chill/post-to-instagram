@@ -97,6 +97,7 @@ function pti_init_plugin() {
     PostToInstagram\Core\Actions\Post::register();
     PostToInstagram\Core\Actions\Schedule::register();
     PostToInstagram\Core\Actions\Cleanup::register();
+    PostToInstagram\Core\Abilities::register();
 
     if ( is_admin() ) {
         PostToInstagram\Core\Admin::register();
