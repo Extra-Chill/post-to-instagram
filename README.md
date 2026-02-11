@@ -120,6 +120,28 @@ npm run build
 ./build.sh
 ```
 
+### WordPress Abilities API (v1.2.0+)
+
+When the WordPress Abilities API is available, three abilities are registered for programmatic Instagram posting by AI agents and automated systems:
+
+| Ability | Description | Permission |
+|---------|-------------|------------|
+| `post-to-instagram/post-from-media` | Post 1-10 media library images to Instagram with auto-cropping | `upload_files` + `edit_posts` |
+| `post-to-instagram/list-media` | List media library images, optionally filtering to unposted only | `upload_files` |
+| `post-to-instagram/auth-status` | Check if Instagram is authenticated and token is valid | `edit_posts` |
+
+**Example — post from media library:**
+
+```php
+$result = wp_execute_ability( 'post-to-instagram/post-from-media', [
+    'attachment_ids' => [ 123, 456 ],
+    'caption'        => 'Hello from the API! #wordpress',
+    'aspect_ratio'   => '4:5',  // 1:1, 4:5, or 1.91:1
+] );
+```
+
+Ability-initiated posts without a `post_id` use a private system post (`[PTI] Ability Posts`) for tracking. All abilities are exposed via REST and MCP (`meta.mcp.public = true`).
+
 ### Security
 
 - All REST endpoints protected with WordPress nonces + capability checks (`edit_posts`, `manage_options`)
