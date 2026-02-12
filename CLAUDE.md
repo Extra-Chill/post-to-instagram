@@ -27,7 +27,8 @@ This is a WordPress plugin for posting images from WordPress posts to Instagram 
 - `post-to-instagram.php` - Main plugin file with autoloader and initialization
 - `inc/Core/Admin.php` - Admin interface management and asset loading
 - `inc/Core/Auth.php` - Instagram OAuth flow and token management
-- `inc/Core/RestApi.php` - REST API endpoints for frontend communication
+- `inc/Core/RestApi.php` - Thin REST API wrappers that delegate to Abilities
+- `inc/Core/Abilities.php` - **Core business logic** exposed as WordPress Abilities API primitives
 - `inc/Core/Actions/Post.php` - Instagram Graph API integration for posting
 - `inc/Core/Actions/Schedule.php` - WP-Cron based scheduling system
 - `inc/Core/Actions/Cleanup.php` - Daily cleanup of temporary files
@@ -108,38 +109,41 @@ This is a WordPress plugin for posting images from WordPress posts to Instagram 
 - **Transients**: OAuth state and temporary data with automatic expiration
 - **File System**: Temporary images in `/wp-content/uploads/pti-temp/` with daily cleanup
 
-### WordPress Abilities API Integration
+### WordPress Abilities API — Core Architecture
 
-The plugin integrates with the WordPress Abilities API for programmatic Instagram posting, enabling agents and automated systems to post images without using the Gutenberg editor.
+**The Abilities API is the core primitive beneath the entire plugin.** All business logic lives in `Abilities.php` as static `execute_*()` methods. REST endpoints in `RestApi.php` are thin wrappers that extract params and delegate to these methods.
 
-**Registered Abilities:**
+**Architecture pattern:**
+```
+Gutenberg JS → REST API (thin wrapper) → Abilities::execute_*() → Action hooks → Instagram API
+MCP/Agents  → Abilities API (direct)   → Abilities::execute_*() → Action hooks → Instagram API
+```
 
-1. **`post-to-instagram/post-from-media`** - Post images from the media library to Instagram
-   - Input: `attachment_ids` (array), `caption` (string), `aspect_ratio` (1:1|4:5|1.91:1), `post_id` (optional)
-   - Output: `success`, `message`, `media_id`, `permalink`
-   - Uses server-side center cropping for the target aspect ratio
-   - Requires: `upload_files` and `edit_posts` capabilities
+**Registered Abilities (all in category `post-to-instagram-actions`):**
 
-2. **`post-to-instagram/list-media`** - List images available for posting
-   - Input: `limit`, `search`, `not_posted` (filter to unposted images)
-   - Output: Array of images with `id`, `title`, `url`, `width`, `height`, `posted` status
-   - Requires: `upload_files` capability
+| Ability | Description | Permission |
+|---------|-------------|------------|
+| `post-to-instagram/post-from-media` | Post media library images to Instagram (server-side crop) | `upload_files` + `edit_posts` |
+| `post-to-instagram/list-media` | List media library images available for posting | `upload_files` |
+| `post-to-instagram/auth-status` | Full auth status (configured, authenticated, URL, username) | `edit_posts` |
+| `post-to-instagram/save-credentials` | Save Instagram App ID and Secret | `manage_options` |
+| `post-to-instagram/disconnect` | Disconnect Instagram account | `manage_options` |
+| `post-to-instagram/post-now` | Post pre-cropped image URLs to Instagram (async support) | `edit_posts` |
+| `post-to-instagram/schedule-post` | Schedule an Instagram post for future publishing | `edit_posts` |
+| `post-to-instagram/get-scheduled-posts` | List scheduled posts (per-post or all) | `edit_posts` |
+| `post-to-instagram/post-status` | Poll async posting status by processing key | `edit_posts` |
 
-3. **`post-to-instagram/auth-status`** - Check Instagram authentication status
-   - Output: `authenticated`, `username`, `expires_at`
-   - Requires: `edit_posts` capability
+**Note:** The `upload-cropped-image` REST endpoint is NOT an ability — file uploads require multipart form data which is REST-specific.
 
-**Usage via REST API:**
+**Usage via Abilities REST API:**
 ```bash
 # Post an image
 POST /wp-json/wp-abilities/v1/post-to-instagram/post-from-media/run
 {"attachment_ids": [123], "caption": "My post", "aspect_ratio": "1:1"}
 
-# List available images
-GET /wp-json/wp-abilities/v1/post-to-instagram/list-media/run?input[limit]=20
-
-# Check auth status
-GET /wp-json/wp-abilities/v1/post-to-instagram/auth-status/run
+# Schedule a post
+POST /wp-json/wp-abilities/v1/post-to-instagram/schedule-post/run
+{"post_id": 456, "image_ids": [123], "crop_data": [...], "schedule_time": "2025-01-15T10:00:00Z"}
 ```
 
 **MCP Integration:**
