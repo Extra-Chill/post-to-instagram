@@ -196,7 +196,7 @@ class RestApi {
 	 * @return \WP_REST_Response Authentication status data
 	 */
 	public static function get_auth_status( $request ) {
-		$result = Abilities::execute_auth_status( [] );
+		$result = Abilities\AuthStatus::execute( [] );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
@@ -210,7 +210,7 @@ class RestApi {
 	 * @return \WP_REST_Response|\WP_Error Response or error
 	 */
 	public static function save_app_credentials( $request ) {
-		$result = Abilities::execute_save_credentials( [
+		$result = Abilities\SaveCredentials::execute( [
 			'app_id'     => $request['app_id'],
 			'app_secret' => $request['app_secret'] ?? '',
 		] );
@@ -233,7 +233,7 @@ class RestApi {
 			return new \WP_Error( 'invalid_nonce', __( 'Invalid nonce.', 'post-to-instagram' ), [ 'status' => 403 ] );
 		}
 
-		$result = Abilities::execute_disconnect( [] );
+		$result = Abilities\Disconnect::execute( [] );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -249,7 +249,7 @@ class RestApi {
 	 * @return \WP_REST_Response|\WP_Error Response or error
 	 */
 	public static function handle_post_now_proxy( $request ) {
-		$result = Abilities::execute_post_now( [
+		$result = Abilities\PostNow::execute( [
 			'post_id'    => $request->get_param( 'post_id' ),
 			'image_urls' => $request->get_param( 'image_urls' ),
 			'image_ids'  => $request->get_param( 'image_ids' ),
@@ -351,7 +351,7 @@ class RestApi {
 	 * @return \WP_REST_Response|\WP_Error Response or error
 	 */
 	public static function handle_schedule_post( $request ) {
-		$result = Abilities::execute_schedule_post( [
+		$result = Abilities\SchedulePost::execute( [
 			'post_id'       => $request->get_param( 'post_id' ),
 			'image_ids'     => $request->get_param( 'image_ids' ),
 			'crop_data'     => $request->get_param( 'crop_data' ),
@@ -373,7 +373,7 @@ class RestApi {
 	 * @return \WP_REST_Response Response with scheduled posts
 	 */
 	public static function handle_get_scheduled_posts( $request ) {
-		$result = Abilities::execute_get_scheduled_posts( [
+		$result = Abilities\GetScheduledPosts::execute( [
 			'post_id' => $request->get_param( 'post_id' ),
 		] );
 
@@ -387,7 +387,7 @@ class RestApi {
      * @return \WP_REST_Response|\WP_Error
      */
     public static function handle_post_status( $request ) {
-		$result = Abilities::execute_post_status( [
+		$result = Abilities\PostStatus::execute( [
 			'processing_key' => $request->get_param( 'processing_key' ),
 		] );
 
