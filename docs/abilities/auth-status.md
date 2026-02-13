@@ -1,0 +1,1 @@
+# AuthStatus Ability
